@@ -5,6 +5,10 @@ on:
     - cron: "0 0 * * *" # every day at midnight UTC
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  pages: write
+
 jobs:
   update-levels:
     runs-on: ubuntu-latest
@@ -23,19 +27,25 @@ jobs:
           duckdb < update-levels.sql
           echo 'update-levels.sql executed'
 
-      - name: Commit and push updated parquet to branch
-        working-directory: ${{ github.workspace }}
-        env:
-          TARGET_BRANCH: parquet-data
+      - name: Prepare Pages artifact
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p public
+          if [ -f levels.parquet ]; then cp levels.parquet public/; fi
 
-            git add levels.parquet
-            if git diff --staged --quiet; then
-              echo "No changes to levels.parquet"
-            else
-              git commit -m "Update levels.parquet [bot]"
-              git push origin HEAD:${TARGET_BRANCH}
-              echo "Pushed updated levels.parquet to branch ${TARGET_BRANCH}"
-            fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+    permissions:
+      actions: write
+
+  deploy:
+    needs: update-levels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v5
