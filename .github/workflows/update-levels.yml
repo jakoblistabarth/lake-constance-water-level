@@ -18,6 +18,8 @@ jobs:
 
       - name: DuckDB setup
         uses: opt-nc/setup-duckdb-action@v1.2.9
+        with:
+          version: "v1.5.3"
 
       - name: Run update script
         working-directory: ${{ github.workspace }}
